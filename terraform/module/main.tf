@@ -8,7 +8,7 @@ terraform {
 }
 
 provider "aws" {
-  region  = "us-west-2"
+  region  = "eu-west-2"
   profile = "nelson"
 }
 
@@ -52,15 +52,15 @@ resource "tls_private_key" "teraform_custom_key" {
   rsa_bit   = 4096
 }
 
+
 resource "aws_key_pair" "ec2_key" {
-  key_name   = var.key_name
+  key_name   = "ec2_key"
   public_key = tls_private_key.teraform_custom_key.public_key_openssh
-  provisioner "local exec" {
-    command = <<-EOT
-      echo '${tls_private_key.terrafor_custom_key.private_key_pem}' > var.key_name.pem
-      chmood 400 var.key_name.pem
-      EOT
-  }
+}
+
+resource "local_file" "TF_key" {
+  content = tls_private_key.teraform_custom_key.private_key_pem
+  filename = "tfkey"
 }
 
 # define aws_instance
@@ -68,12 +68,13 @@ resource "aws_instance" "data_eng" {
   ami               = data.aws_ami.ubuntu.id
   instance_type     = var.instance_type
   source_dest_check = [aws_security_group.data-security-group.name]
-  key_name          = aws_key_pair.ec2_key.key_name
+  key_name          = "ec2_key"
 
   tags = {
     Name = "HelloWorld"
   }
 }
+
 
 # cofigure aws budget
 resource "aws_budgets_budget" "data_server_budget" {
